@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if(!(editText.getText().toString().equals(""))){
                     TextView textView = findViewById(R.id.textView);
+                    textView.append("\n");
                     textView.append(editText.getText().toString());
                     editText.setText("");
 
