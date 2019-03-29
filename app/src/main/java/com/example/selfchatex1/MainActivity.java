@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
                 if(!(editText.getText().toString().equals(""))){
 //                    TextView textView = findViewById(R.id.textView);
                     adapter.addItem(editText.getText().toString());
-                    adapter.addItem("\n");
+//                    adapter.addItem("\n");
 //                    textView.append("\n");
 //                    textView.append(editText.getText().toString());
                     editText.setText("");
