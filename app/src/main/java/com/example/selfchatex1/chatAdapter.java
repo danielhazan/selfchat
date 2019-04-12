@@ -1,10 +1,12 @@
 package com.example.selfchatex1;
+import android.app.AlertDialog;
 import android.support.annotation.NonNull;
 import android.support.v7.recyclerview.extensions.ListAdapter;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -12,7 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class chatAdapter {
-    static class chatHolder extends RecyclerView.ViewHolder{
+    interface chatBoxClickCallback{
+        void onChatBoxClick(List<String> strings, int position);
+    }
+    static class chatHolder extends RecyclerView.ViewHolder {
         public final ImageView imageView;
         public final TextView textView;
         public chatHolder(@NonNull View itemView){
@@ -20,21 +25,28 @@ public class chatAdapter {
             imageView = itemView.findViewById(R.id.imageView);
             textView = itemView.findViewById(R.id.textView2);
 
+
         }
         public void set_text(String text){
             this.textView.setText(text);
         }
 
+
     }
-    public static class chatAdapter1 extends RecyclerView.Adapter<chatHolder>{
+    public static class chatAdapter1 extends RecyclerView.Adapter<chatHolder> {
 //    public static class chatAdapter1 extends ListAdapter<chatHolder> {
         protected List<String> strings;
         public chatAdapter1(List<String> strings){
             this.strings = strings;
         }
 
+        public chatBoxClickCallback callback;
         public void addItem(String item){
             this.strings.add(item);
+            notifyDataSetChanged();
+        }
+        public void removeItem(int position){
+            this.strings.remove(position);
             notifyDataSetChanged();
         }
         public ArrayList<String> getStrings(){
@@ -45,9 +57,29 @@ public class chatAdapter {
         @NonNull
         @Override
         public chatHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
-            View view = (View) LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.item_per_chat,
+            View view =  LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.item_per_chat,
                     viewGroup, false);
-            return new chatHolder(view);
+            final chatHolder holder = new chatHolder(view);
+
+            holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+//            view.setOnLongClickListener(new View.OnLongClickListener(){
+                @Override
+                public boolean onLongClick(View v) {
+                    String i;
+
+                    if(callback != null) {
+                        callback.onChatBoxClick(strings, holder.getAdapterPosition());
+                        notifyItemRemoved(holder.getAdapterPosition());
+                        notifyItemRangeChanged(holder.getAdapterPosition(), strings.size());
+                   }
+                    return false;
+
+                }
+
+
+            });
+
+            return holder;
         }
 
         @Override

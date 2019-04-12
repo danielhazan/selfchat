@@ -1,5 +1,7 @@
 package com.example.selfchatex1;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
 
@@ -17,25 +19,43 @@ import android.os.Parcelable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+import androidx.room.ColumnInfo;
+import androidx.room.Dao;
+import androidx.room.Database;
+import androidx.room.Delete;
+import androidx.room.Entity;
+import androidx.room.Insert;
+import androidx.room.PrimaryKey;
+import androidx.room.Query;
+import androidx.room.Room;
+import androidx.room.RoomDatabase;
+
+public class MainActivity extends AppCompatActivity
+        implements chatAdapter.chatBoxClickCallback{
+
     private chatAdapter.chatAdapter1 adapter = new chatAdapter.chatAdapter1(new ArrayList<String>());
     private RecyclerView recyclerView;
-    private ArrayList<String> strings = new ArrayList<>();
+//    private ArrayList<String> strings = new ArrayList<>();
     private Parcelable recycleState;
     private RecyclerView.LayoutManager layoutManager;
     private ArrayList<String> stringArrayList;
+    AppDatabase db = Room.databaseBuilder(getApplicationContext(),AppDatabase.class,"databse-name").build();
+    MsgDao dao = db.msgDao();/*todo continue persistence of text in db*/
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         layoutManager = new LinearLayoutManager(this,LinearLayoutManager.VERTICAL,
                 false);
         final EditText editText = findViewById(R.id.edit_text);
         recyclerView = (RecyclerView) findViewById(R.id.recycler) ;
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
+        adapter.callback = this;
 
         initializeChat(editText);
         adapter.notifyDataSetChanged();
@@ -95,4 +115,61 @@ public class MainActivity extends AppCompatActivity {
             layoutManager.onRestoreInstanceState(recycleState);
         }
     }
+
+    @Override
+    public void onChatBoxClick(final List<String> strings1, final int position) {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder((MainActivity)this);
+        alertDialog.setTitle("popup message");
+        alertDialog.setMessage("are you sure?");
+        alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+//                strings1.remove(position);
+                adapter.removeItem(position);
+                dialog.cancel();
+            }
+        });
+//        alertDialog.show();
+        alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        AlertDialog alert = alertDialog.create();
+        alert.show();
+
+
+
+
+
+    }
 }
+@Entity
+class Msg{
+    @PrimaryKey
+    public int Mid;
+
+    @ColumnInfo(name = "chatBox")
+    public String message;
+}
+
+@Dao
+interface MsgDao{
+
+    @Query("SELECT * FROM Msg")
+    List<String> getAll();
+
+
+    @Insert
+    void insertAll(Msg ... msgs);
+
+    @Delete
+    void delete(Msg msg);
+}
+
+@Database(entities = {Msg.class}, version = 1)
+abstract class AppDatabase extends RoomDatabase{
+    public abstract MsgDao msgDao();
+}
+
