@@ -36,18 +36,27 @@ public class chatAdapter {
     public static class chatAdapter1 extends RecyclerView.Adapter<chatHolder> {
 //    public static class chatAdapter1 extends ListAdapter<chatHolder> {
         protected List<String> strings;
+        protected List<Integer> msgIds;
         public chatAdapter1(List<String> strings){
             this.strings = strings;
         }
 
         public chatBoxClickCallback callback;
-        public void addItem(String item){
+        public void addItem(String item,Integer msgId){
             this.strings.add(item);
+            this.msgIds.add(msgId);
             notifyDataSetChanged();
         }
         public void removeItem(int position){
             this.strings.remove(position);
+            this.msgIds.remove(position);
             notifyDataSetChanged();
+        }
+        public String getMsg(int position){
+            return this.strings.get(position);
+        }
+        public Integer getMsgId(int position){
+            return this.msgIds.get(position);
         }
         public ArrayList<String> getStrings(){
             return (ArrayList<String>) strings;

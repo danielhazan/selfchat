@@ -1,7 +1,9 @@
 package com.example.selfchatex1;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.nfc.Tag;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
 
@@ -40,7 +42,8 @@ public class MainActivity extends AppCompatActivity
     private RecyclerView.LayoutManager layoutManager;
     private ArrayList<String> stringArrayList;
     AppDatabase db = Room.databaseBuilder(getApplicationContext(),AppDatabase.class,"databse-name").build();
-    MsgDao dao = db.msgDao();/*todo continue persistence of text in db*/
+//    MsgDao dao = db.msgDao().insertAll();/*todo continue persistence of text in db*/
+    private int msgId;
 
 
 
@@ -56,6 +59,10 @@ public class MainActivity extends AppCompatActivity
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
         adapter.callback = this;
+        List<Msg> messegesList = db.msgDao().getAll();
+        int sizeMsgList = db.msgDao().getNumofMsgs();
+        android.util.Log.d(MainActivity.class.getName(),"current size of chat messages list: " +sizeMsgList );
+        this.msgId = 0;
 
         initializeChat(editText);
         adapter.notifyDataSetChanged();
@@ -70,7 +77,12 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v) {
                 if(!(editText.getText().toString().equals(""))){
 //                    TextView textView = findViewById(R.id.textView);
-                    adapter.addItem(editText.getText().toString());
+                    adapter.addItem(editText.getText().toString(),msgId);
+                    Msg msg = new Msg();
+                    msg.setMid(msgId);
+                    msg.setMessage(editText.getText().toString());
+                    db.msgDao().insertAll(msg);
+                    msgId ++;
 //                    adapter.addItem("\n");
 //                    textView.append("\n");
 //                    textView.append(editText.getText().toString());
@@ -83,6 +95,7 @@ public class MainActivity extends AppCompatActivity
                     String msg = "you can't send an empty message";
                     int duration = Snackbar.LENGTH_SHORT;
                     Snackbar.make(mainView,msg,duration).show();
+
 
                 }
             }
@@ -125,7 +138,10 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(DialogInterface dialog, int which) {
 //                strings1.remove(position);
+                Msg msg = db.msgDao().findByMessageId(adapter.getMsgId(position));
+                db.msgDao().delete(msg);
                 adapter.removeItem(position);
+
                 dialog.cancel();
             }
         });
@@ -152,14 +168,29 @@ class Msg{
 
     @ColumnInfo(name = "chatBox")
     public String message;
+
+    public void setMid(int id){
+        this.Mid = id;
+    }
+    public void setMessage(String msg){
+        this.message = msg;
+    }
+    public int getMid(){ return this.Mid; }
+    public String getMessage(){ return this.message;}
 }
 
 @Dao
 interface MsgDao{
 
     @Query("SELECT * FROM Msg")
-    List<String> getAll();
+    List<Msg> getAll();
 
+    @Query("SELECT COUNT(*) FROM Msg")
+    int getNumofMsgs();
+
+
+    @Query("SELECT * FROM Msg WHERE Mid LIKE : msgId ")
+    Msg findByMessageId(Integer msgId);
 
     @Insert
     void insertAll(Msg ... msgs);
@@ -171,5 +202,6 @@ interface MsgDao{
 @Database(entities = {Msg.class}, version = 1)
 abstract class AppDatabase extends RoomDatabase{
     public abstract MsgDao msgDao();
+
 }
 
