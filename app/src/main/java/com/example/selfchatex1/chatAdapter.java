@@ -1,12 +1,10 @@
 package com.example.selfchatex1;
-import android.app.AlertDialog;
-import android.support.annotation.NonNull;
-import android.support.v7.recyclerview.extensions.ListAdapter;
-import android.support.v7.widget.RecyclerView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.ListAdapter;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -37,15 +35,30 @@ public class chatAdapter {
 //    public static class chatAdapter1 extends ListAdapter<chatHolder> {
         protected List<String> strings;
         protected List<Integer> msgIds;
-        public chatAdapter1(List<String> strings){
+        public chatAdapter1(List<String> strings,List<Integer> msgids){
             this.strings = strings;
+            this.msgIds = msgids;
+
         }
 
         public chatBoxClickCallback callback;
         public void addItem(String item,Integer msgId){
-            this.strings.add(item);
-            this.msgIds.add(msgId);
-            notifyDataSetChanged();
+            if(!this.msgIds.contains(msgId)) {
+                this.strings.add(item);
+                this.msgIds.add(msgId);
+                notifyDataSetChanged();
+            }
+        }
+         public boolean isEmpty(){
+            return this.strings.isEmpty();
+         }
+        public void setWords(List<Msg> strings){
+            for(Msg msg: strings){
+//                int id = msg.getMid();
+                if(!this.msgIds.contains(msg.getMid()) )
+                    addItem(msg.getMessage(),msg.getMid());
+            }
+//            this.strings = strings;
         }
         public void removeItem(int position){
             this.strings.remove(position);
