@@ -3,6 +3,7 @@ package com.example.selfchatex1;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Parcelable;
 
@@ -105,13 +106,13 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         protected Void doInBackground(Msg... msgs) {
-//            if (!adapter.isEmpty())
-//                msgId =  mAsyntaskDao.findMaxMid();
-//            else
-//            {
-//                msgId = 0;
-//            }
-            msgId =  mAsyntaskDao.findMaxMid() +1;
+            if (!adapter.isEmpty())
+                msgId =  mAsyntaskDao.findMaxMid()+1;
+            else
+            {
+                msgId = 0;
+            }
+//            msgId =  mAsyntaskDao.findMaxMid() +1;
             return null;
         }
     }
@@ -175,6 +176,7 @@ public class MainActivity extends AppCompatActivity
         findMaxMid();  /*todo*/
 //        msgId++;
         Log.d(MainActivity.class.getName(),"********************************  " + msgId );
+        getTableAsString(db,"Msg");//debug purposes
 
 
 
@@ -208,13 +210,20 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v) {
                 if(!(editText.getText().toString().equals(""))){
 //                    TextView textView = findViewById(R.id.textView);
+
+                    findMaxMid();  /*todo*/
                     adapter.addItem(editText.getText().toString(),msgId);
                     Msg msg = new Msg();
+                    Log.d("DBTABLE ***************", " " + msgId  + " " + msg.getMid());//debug
                     msg.setMid(msgId);
+                    Log.d("DBTABLE ***************", " " + msgId);//debug
                     msg.setMessage(editText.getText().toString());
 //                    db.msgDao().insertAll(msg);
+                    getTableAsString(db,"Msg");//debug purposes
+                    Log.d("DBTABLE ***************", " " + msg.getMid());//debug
                     insert(msg);
                     msgId ++;
+                    getTableAsString(db,"Msg");//debug purposes
 //                    adapter.addItem("\n");
 //                    textView.append("\n");
 //                    textView.append(editText.getText().toString());
@@ -314,6 +323,26 @@ public class MainActivity extends AppCompatActivity
 
 
     }
+    public String getTableAsString(AppDatabase db, String tableName) {
+        Log.d("DBtable", "getTableAsString called");
+        String tableString = String.format("Table %s:\n", tableName);
+        Cursor allRows  = db.query("SELECT * FROM " + tableName, null);
+        if (allRows.moveToFirst() ){
+            String[] columnNames = allRows.getColumnNames();
+            do {
+                for (String name: columnNames) {
+                    tableString += String.format("%s: %s\n", name,
+                            allRows.getString(allRows.getColumnIndex(name)));
+                }
+                tableString += "\n";
+
+            } while (allRows.moveToNext());
+        }
+        Log.d("DBTABLE ***************", tableString);
+
+        return tableString;
+    }
+
 }
 @Entity
 class Msg{
@@ -352,7 +381,7 @@ interface MsgDao{
     @Query("DELETE FROM Msg ")
     void deleteAll();
 
-    @Query("DELETE * FROM Msg WHERE Mid LIKE : msgID")
+    @Query("DELETE  FROM Msg WHERE Mid LIKE :msgID")
     void deleteMe(Integer msgID);
 
     @Insert
