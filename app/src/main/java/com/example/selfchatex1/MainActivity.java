@@ -28,6 +28,7 @@ import com.google.android.material.snackbar.Snackbar;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
+import java.util.concurrent.ExecutionException;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Dao;
@@ -107,7 +108,11 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected Void doInBackground(Msg... msgs) {
             if (!adapter.isEmpty())
-                msgId =  mAsyntaskDao.findMaxMid()+1;
+
+
+
+                msgId =  mAsyntaskDao.findMaxMid() +1;
+
             else
             {
                 msgId = 0;
@@ -167,13 +172,25 @@ public class MainActivity extends AppCompatActivity
 //        int sizeMsgList = db.msgDao().getNumofMsgs();
 //        android.util.Log.d(MainActivity.class.getName(),"current size of chat messages list: " +sizeMsgList );
         adapter.notifyDataSetChanged();
-        findMaxMid();  /*todo*/
+        try {
+            findMaxMid();  /*todo*/
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 //        msgId++;
         Log.d(MainActivity.class.getName(),"********************************  " + msgId );
         initializeChat(editText);
         adapter.notifyDataSetChanged();
         Log.d(MainActivity.class.getName(),"********************************  " + msgId );
-        findMaxMid();  /*todo*/
+        try {
+            findMaxMid();  /*todo*/
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 //        msgId++;
         Log.d(MainActivity.class.getName(),"********************************  " + msgId );
         getTableAsString(db,"Msg");//debug purposes
@@ -197,8 +214,8 @@ public class MainActivity extends AppCompatActivity
         new deleteMeAsyncTask(db.msgDao()).execute(Mid);
     }
 
-    void findMaxMid(){
-        new findMadIdLAsyncTask(db.msgDao()).execute();
+    void findMaxMid() throws ExecutionException, InterruptedException {
+        new findMadIdLAsyncTask(db.msgDao()).execute().get();
 
 
     }
@@ -211,10 +228,14 @@ public class MainActivity extends AppCompatActivity
                 if(!(editText.getText().toString().equals(""))){
 //                    TextView textView = findViewById(R.id.textView);
 
-                    findMaxMid();  /*todo*/
-                    synchronized (AppDatabase.class){
+                    try {
                         findMaxMid();  /*todo*/
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
+
                     adapter.addItem(editText.getText().toString(),msgId);
                     Msg msg = new Msg();
                     Log.d("DBTABLE ***************", " " + msgId  + " " + msg.getMid());//debug
@@ -251,8 +272,8 @@ public class MainActivity extends AppCompatActivity
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         recycleState =layoutManager.onSaveInstanceState();
-        outState.putParcelable("recyclestate",recycleState);
-        outState.putStringArrayList("recyclerContent",adapter.getStrings());
+//        outState.putParcelable("recyclestate",recycleState);
+//        outState.putStringArrayList("recyclerContent",adapter.getStrings());
     }
     @Override
     protected void onRestoreInstanceState(Bundle state){
@@ -306,7 +327,13 @@ public class MainActivity extends AppCompatActivity
 ////                db.msgDao().delete(msg);
 //                delete(msg1[0]);
                 adapter.removeItem(position);
-                findMaxMid();
+                try {
+                    findMaxMid();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 dialog.cancel();
             }
@@ -384,7 +411,10 @@ interface MsgDao{
     @Query("DELETE FROM Msg ")
     void deleteAll();
 
-    @Query("DELETE  FROM Msg WHERE Mid LIKE :msgID")
+
+
+    @Query("DELETE FROM Msg WHERE Mid LIKE :msgID")
+
     void deleteMe(Integer msgID);
 
     @Insert
