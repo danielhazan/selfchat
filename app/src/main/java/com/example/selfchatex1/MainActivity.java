@@ -212,6 +212,9 @@ public class MainActivity extends AppCompatActivity
 //                    TextView textView = findViewById(R.id.textView);
 
                     findMaxMid();  /*todo*/
+                    synchronized (AppDatabase.class){
+                        findMaxMid();  /*todo*/
+                    }
                     adapter.addItem(editText.getText().toString(),msgId);
                     Msg msg = new Msg();
                     Log.d("DBTABLE ***************", " " + msgId  + " " + msg.getMid());//debug
