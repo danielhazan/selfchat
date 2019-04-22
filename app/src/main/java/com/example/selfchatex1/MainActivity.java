@@ -115,6 +115,19 @@ public class MainActivity extends AppCompatActivity
             return null;
         }
     }
+    private static class deleteMeAsyncTask extends AsyncTask<Integer, Void,Void>{
+        private MsgDao mAsyntaskDao;
+
+        deleteMeAsyncTask(MsgDao msgDao){
+            this.mAsyntaskDao = msgDao;
+        }
+
+        @Override
+        protected Void doInBackground(Integer... integers) {
+            mAsyntaskDao.deleteMe(integers[0]);
+            return null;
+        }
+    }
 
 
 //    private insertAsyncTask insertAsyncTask;
@@ -178,6 +191,10 @@ public class MainActivity extends AppCompatActivity
         new deleteALLAsyncTask(db.msgDao()).execute();
     }
 
+    void deleteMe(Integer Mid){
+        new deleteMeAsyncTask(db.msgDao()).execute(Mid);
+    }
+
     void findMaxMid(){
         new findMadIdLAsyncTask(db.msgDao()).execute();
 
@@ -233,6 +250,16 @@ public class MainActivity extends AppCompatActivity
             stringArrayList = state.getStringArrayList("recyclerContent");
         }
     }
+    private void removeMsgFromDB(Integer position){
+//        db.msgDao().findByMessageId(adapter.getMsgId(position)).observe(this, new Observer<Msg>() {
+//            @Override
+//            public void onChanged(Msg msg) {
+//                delete(msg);
+//            }
+//        });
+        deleteMe(adapter.getMsgId(position));
+
+    }
     @Override
     protected void onResume(){
         super.onResume();
@@ -242,14 +269,6 @@ public class MainActivity extends AppCompatActivity
         if(recycleState != null){
             layoutManager.onRestoreInstanceState(recycleState);
         }
-    }
-    private void removeMsgFromDB(Integer position){
-        db.msgDao().findByMessageId(adapter.getMsgId(position)).observe(this, new Observer<Msg>() {
-            @Override
-            public void onChanged(Msg msg) {
-                delete(msg);
-            }
-        });
     }
 
     @Override
@@ -332,6 +351,9 @@ interface MsgDao{
 
     @Query("DELETE FROM Msg ")
     void deleteAll();
+
+    @Query("DELETE * FROM Msg WHERE Mid LIKE : msgID")
+    void deleteMe(Integer msgID);
 
     @Insert
     void insertAll(Msg ... msgs);
