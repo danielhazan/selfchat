@@ -16,6 +16,7 @@ import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.support.v4.app.INotificationSideChannel;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -104,12 +105,13 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         protected Void doInBackground(Msg... msgs) {
-            if (!adapter.isEmpty())
-                msgId =  mAsyntaskDao.findMaxMid();
-            else
-            {
-                msgId = 0;
-            }
+//            if (!adapter.isEmpty())
+//                msgId =  mAsyntaskDao.findMaxMid();
+//            else
+//            {
+//                msgId = 0;
+//            }
+            msgId =  mAsyntaskDao.findMaxMid() +1;
             return null;
         }
     }
@@ -150,10 +152,17 @@ public class MainActivity extends AppCompatActivity
         });
 //        int sizeMsgList = db.msgDao().getNumofMsgs();
 //        android.util.Log.d(MainActivity.class.getName(),"current size of chat messages list: " +sizeMsgList );
+        adapter.notifyDataSetChanged();
         findMaxMid();  /*todo*/
-
+//        msgId++;
+        Log.d(MainActivity.class.getName(),"********************************  " + msgId );
         initializeChat(editText);
         adapter.notifyDataSetChanged();
+        Log.d(MainActivity.class.getName(),"********************************  " + msgId );
+        findMaxMid();  /*todo*/
+//        msgId++;
+        Log.d(MainActivity.class.getName(),"********************************  " + msgId );
+
 
 
 
@@ -266,6 +275,7 @@ public class MainActivity extends AppCompatActivity
 ////                db.msgDao().delete(msg);
 //                delete(msg1[0]);
                 adapter.removeItem(position);
+                findMaxMid();
 
                 dialog.cancel();
             }
