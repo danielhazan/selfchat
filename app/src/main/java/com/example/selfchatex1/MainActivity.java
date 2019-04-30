@@ -268,12 +268,12 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         recycleState =layoutManager.onSaveInstanceState();
-//        outState.putParcelable("recyclestate",recycleState);
-//        outState.putStringArrayList("recyclerContent",adapter.getStrings());
+
     }
     @Override
     protected void onRestoreInstanceState(Bundle state){
