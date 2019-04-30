@@ -235,6 +235,7 @@ public class MainActivity extends AppCompatActivity
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                    
 
                     adapter.addItem(editText.getText().toString(),msgId);
                     Msg msg = new Msg();
