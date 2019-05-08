@@ -2,6 +2,8 @@ package com.example.selfchatex1;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
+
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -42,7 +44,7 @@ public class chatAdapter {
         }
 
         public chatBoxClickCallback callback;
-        public void addItem(String item,Integer msgId){
+        public void addItem(String item, Integer msgId){
             if(!this.msgIds.contains(msgId)) {
                 this.strings.add(item);
                 this.msgIds.add(msgId);
@@ -71,6 +73,7 @@ public class chatAdapter {
         public Integer getMsgId(int position){
             return this.msgIds.get(position);
         }
+
         public ArrayList<String> getStrings(){
             return (ArrayList<String>) strings;
         }

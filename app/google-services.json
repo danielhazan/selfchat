@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "994472129092",
+    "firebase_url": "https://selfchat-eb8ce.firebaseio.com",
+    "project_id": "selfchat-eb8ce",
+    "storage_bucket": "selfchat-eb8ce.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:994472129092:android:c4ca8b313514d97e",
+        "android_client_info": {
+          "package_name": "com.example.selfchatex1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "994472129092-b3j1q5da479mh2fvaretpabqc2cqvpt4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDgoj9_uqc4R8vFq6eNg3WWLmQhLMdn4qI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "994472129092-b3j1q5da479mh2fvaretpabqc2cqvpt4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

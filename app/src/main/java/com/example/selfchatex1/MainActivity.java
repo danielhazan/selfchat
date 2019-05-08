@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Parcelable;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 //import androidx.appcompat.app.AppCompatActivity;
@@ -23,10 +24,31 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.android.material.snackbar.Snackbar;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 
@@ -40,30 +62,92 @@ import androidx.room.PrimaryKey;
 import androidx.room.Query;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+//import TaskCompleted.java;
 
 public class MainActivity extends AppCompatActivity
-        implements chatAdapter.chatBoxClickCallback{
+        implements chatAdapter.chatBoxClickCallback, TaskCompleted{
 
     private chatAdapter.chatAdapter1 adapter = new chatAdapter.chatAdapter1(new ArrayList<String>(),new ArrayList<Integer>());
     private RecyclerView recyclerView;
-//    private ArrayList<String> strings = new ArrayList<>();
     private Parcelable recycleState;
     private RecyclerView.LayoutManager layoutManager;
     private ArrayList<String> stringArrayList;
-//    AppDatabase db = Room.databaseBuilder(context.getApplicationContext(),AppDatabase.class,"databse-name").build();
     AppDatabase db ;
     public int msgId;
+    FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+    // Create a new user with a first, middle, and last name
+    Map<String, Object> user1 = new HashMap<>();
 
-    private static class insertAsyncTask extends AsyncTask<Msg,Void,Void>{
+    @Override
+    public void addToFirebase(Msg msg) {
+        Map<String, Object> user = new HashMap<>();
+
+        user.put("msg",msg.getMessage());
+        user.put("id",msg.getMid());
+        user.put("timeStamp",msg.getTimestamp());
+        firebaseFirestore.collection("chats").document(Integer.toString(msg.getMid()))
+                .set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+               Log.d("ADDED****", "SUCCESSFULLY ADDED " );
+            }
+        })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w("NOT ADDED", "Error writing document", e);
+                    }
+                });
+
+    }
+
+    @Override
+    public void loadFromFS() {
+        new loadFromFeirestore(this.firebaseFirestore).execute();
+        refreshmsgList();
+    }
+
+
+    private static class insertLocalAsyncTask extends AsyncTask<Msg,Void,Void>{
         private MsgDao mAsyntaskDao;
 
-        insertAsyncTask(MsgDao dao){
+
+        insertLocalAsyncTask(MsgDao dao){
             this.mAsyntaskDao = dao;
+
         }
 
         @Override
         protected Void doInBackground(Msg... msgs) {
-            mAsyntaskDao.insertAll(msgs[0]);
+           Msg msg =  mAsyntaskDao.findByMessageId(msgs[0].getMid());
+           if (msg != null){
+               return null;
+           }
+           else {
+               mAsyntaskDao.insertAll(msgs[0]);
+           }
+            return null;
+        }
+    }
+
+    private static class insertAsyncTask extends AsyncTask<Msg,Void,Void>{
+        private MsgDao mAsyntaskDao;
+        private Context mContext;
+        private TaskCompleted mCallback;
+
+        insertAsyncTask(Context context,MsgDao dao){
+            this.mAsyntaskDao = dao;
+            this.mContext = context;
+            this.mCallback = (TaskCompleted) context;
+        }
+
+
+
+        @Override
+        protected Void doInBackground(Msg... msgs) {
+
+            mCallback.addToFirebase(msgs[0]);
+
             return null;
         }
     }
@@ -81,7 +165,6 @@ public class MainActivity extends AppCompatActivity
             return null;
         }
     }
-
     private static class deleteALLAsyncTask extends AsyncTask<Msg,Void,Void>{
         private MsgDao mAsyntaskDao;
 
@@ -110,14 +193,12 @@ public class MainActivity extends AppCompatActivity
             if (!adapter.isEmpty())
 
 
-
                 msgId =  mAsyntaskDao.findMaxMid() +1;
 
             else
             {
                 msgId = 0;
             }
-//            msgId =  mAsyntaskDao.findMaxMid() +1;
             return null;
         }
     }
@@ -130,14 +211,89 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         protected Void doInBackground(Integer... integers) {
+            Msg msg = mAsyntaskDao.findByMessageId(integers[0]);
+            if(msg != null) {
+                mAsyntaskDao.deleteMe(integers[0]);
+            }
+            else{
+                return null;
+            }
+            return null;
+        }
+    }
+
+    private static class findByIdAsyncTask extends AsyncTask<Integer, Void,Void>{
+        private MsgDao mAsyntaskDao;
+        private Context mContext;
+        private TaskCompleted mCallback;
+
+        findByIdAsyncTask(MsgDao msgDao){
+            this.mAsyntaskDao = msgDao;
+
+        }
+
+        @Override
+        protected Void doInBackground(Integer... integers) {
             mAsyntaskDao.deleteMe(integers[0]);
             return null;
         }
     }
 
+    private class loadFromFeirestore extends AsyncTask<Void, Void,Void> {
+        private FirebaseFirestore firebaseFirestore;
 
-//    private insertAsyncTask insertAsyncTask;
 
+        loadFromFeirestore(FirebaseFirestore firestore) {
+            this.firebaseFirestore = firestore;
+
+        }
+
+        @Override
+        protected Void doInBackground(Void ... voids) {
+            firebaseFirestore.collection("chats").get()
+                    .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                            if (task.isSuccessful()) {
+
+
+                                Integer maxId = 0;
+                                for (QueryDocumentSnapshot document : task.getResult()) {
+                                    Msg newMsg = new Msg();
+                                    for (Map.Entry<String, Object> entry : document.getData().entrySet()) {
+                                        if (entry.getKey().equals("msg")) {
+                                            newMsg.message = (String) entry.getValue();
+                                        }
+                                        if (entry.getKey().equals("id")) {
+                                            newMsg.Mid = ((Long) entry.getValue()).intValue();
+                                            if (newMsg.Mid > maxId) {
+                                                maxId = newMsg.Mid;
+                                            }
+                                        }
+                                        if (entry.getKey().equals("timeStamp")) {
+                                            newMsg.timestamp = (String) entry.getValue();
+                                        }
+
+
+                                    }
+                                    insertToLocalDB(newMsg); // check what happen if the msg already exists in local DB
+
+                                    Log.d("DOC*****", document.getId() + " => " + document.getData());
+                                }
+                                msgId = maxId + 1;
+
+                            } else {
+                                Log.w("NOT OK****", "Error getting documents.");
+
+                            }
+
+                        }
+                    });
+            return null;
+
+        }
+
+    }
 
 
     @Override
@@ -146,7 +302,47 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
         db = AppDatabase.getDatabase(this);    /*todo*/
 
-//        deleteAll();
+        //loading from firestore to local room
+        firebaseFirestore.collection("chats").get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if(task.isSuccessful()) {
+
+
+                            Integer maxId = 0;
+                            for   (QueryDocumentSnapshot document : task.getResult()) {
+                                Msg newMsg = new Msg();
+                                for (Map.Entry<String, Object> entry : document.getData().entrySet()) {
+                                    if(entry.getKey().equals("msg")){
+                                        newMsg.message = (String) entry.getValue();
+                                    }
+                                    if(entry.getKey().equals( "id")){
+                                        newMsg.Mid = ((Long) entry.getValue()).intValue();
+                                        if (newMsg.Mid > maxId) {
+                                            maxId = newMsg.Mid;
+                                        }
+                                    }
+                                    if(entry.getKey().equals( "timeStamp")){
+                                        newMsg.timestamp = (String) entry.getValue();
+                                    }
+
+                                }
+                                insertToLocalDB(newMsg); // check what happen if the msg already exists in local DB
+
+                                Log.d("DOC*****", document.getId() + " => " + document.getData());
+                                }
+                            msgId = maxId +1;
+
+                            }
+                        else{
+                            Log.w("NOT OK****", "Error getting documents." );
+
+                        }
+
+                    }
+                });
+
 
         layoutManager = new LinearLayoutManager(this,RecyclerView.VERTICAL,
                 false);
@@ -169,38 +365,73 @@ public class MainActivity extends AppCompatActivity
                 adapter.setWords(msgs);
             }
         });
-//        int sizeMsgList = db.msgDao().getNumofMsgs();
-//        android.util.Log.d(MainActivity.class.getName(),"current size of chat messages list: " +sizeMsgList );
+
         adapter.notifyDataSetChanged();
-        try {
-            findMaxMid();  /*todo*/
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        if(adapter.isEmpty()){
+            msgId = 0;
         }
-//        msgId++;
+
+        loadfromFS();
+        refreshmsgList();
         Log.d(MainActivity.class.getName(),"********************************  " + msgId );
         initializeChat(editText);
         adapter.notifyDataSetChanged();
         Log.d(MainActivity.class.getName(),"********************************  " + msgId );
-        try {
-            findMaxMid();  /*todo*/
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-//        msgId++;
+
         Log.d(MainActivity.class.getName(),"********************************  " + msgId );
         getTableAsString(db,"Msg");//debug purposes
+        loadfromFS();
+        refreshmsgList();
 
 
+
+        firebaseFirestore.collection("chats").addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@javax.annotation.Nullable QuerySnapshot queryDocumentSnapshots,
+                                @javax.annotation.Nullable FirebaseFirestoreException e) {
+
+                loadFromFS();
+                refreshmsgList();
+
+                //another option -- load directly documents to db via Document.toObject(Msg.class)
+
+
+//                if(e != null){
+//                    Log.w("TAG", "listen:error", e);
+//                    return;
+//                }
+//                List<DocumentChange> dc = queryDocumentSnapshots.getDocumentChanges();
+//                for (DocumentChange doc : dc){
+//                    Msg msg = doc.getDocument().toObject(Msg.class);
+//                    insertToLocalDB(msg);
+//                    refreshmsgList();
+//                }
+//                adapter.notifyDataSetChanged();
+
+            }
+        });
 
 
     }
+
+    void refreshmsgList(){
+        db.msgDao().getAll().observe(this, new Observer<List<Msg>>() {
+            @Override
+            public void onChanged(@Nullable final List<Msg> msgs) {
+                adapter.setWords(msgs);
+            }
+        });
+
+        adapter.notifyDataSetChanged();
+    }
+
+    void loadfromFS(){new loadFromFeirestore(this.firebaseFirestore).execute();}
+
+    void insertToLocalDB(Msg msg) {
+        new insertLocalAsyncTask(db.msgDao()).execute(msg);
+    }
     void insert(Msg msg){
-        new insertAsyncTask(db.msgDao()).execute(msg);
+        new insertAsyncTask(MainActivity.this,db.msgDao()).execute(msg);
     }
 
     void delete(Msg msg){
@@ -217,7 +448,6 @@ public class MainActivity extends AppCompatActivity
     void findMaxMid() throws ExecutionException, InterruptedException {
         new findMadIdLAsyncTask(db.msgDao()).execute().get();
 
-
     }
 
     private void initializeChat(final EditText editText){
@@ -226,32 +456,26 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 if(!(editText.getText().toString().equals(""))){
-//                    TextView textView = findViewById(R.id.textView);
 
-                    try {
-                        findMaxMid();  /*todo*/
-                    } catch (ExecutionException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    
-
+                    loadfromFS();
+                    refreshmsgList();
                     adapter.addItem(editText.getText().toString(),msgId);
                     Msg msg = new Msg();
                     Log.d("DBTABLE ***************", " " + msgId  + " " + msg.getMid());//debug
                     msg.setMid(msgId);
+                    Long tsLong = System.currentTimeMillis()/1000;
+                    String date = getDateCurrentTimeZone(tsLong);
+                    msg.setTimeStamp(date);
                     Log.d("DBTABLE ***************", " " + msgId);//debug
                     msg.setMessage(editText.getText().toString());
-//                    db.msgDao().insertAll(msg);
                     getTableAsString(db,"Msg");//debug purposes
                     Log.d("DBTABLE ***************", " " + msg.getMid());//debug
                     insert(msg);
+                    adapter.addItem(msg.getMessage(),msg.getMid());;
+                    adapter.notifyDataSetChanged();
                     msgId ++;
                     getTableAsString(db,"Msg");//debug purposes
-//                    adapter.addItem("\n");
-//                    textView.append("\n");
-//                    textView.append(editText.getText().toString());
+
                     editText.setText("");
                     recyclerView.scrollToPosition(adapter.getItemCount()-1);
 
@@ -262,11 +486,24 @@ public class MainActivity extends AppCompatActivity
                     int duration = Snackbar.LENGTH_SHORT;
                     Snackbar.make(mainView,msg,duration).show();
 
-
                 }
             }
         });
 
+    }
+
+    public  String getDateCurrentTimeZone(long timestamp) {
+        try{
+            Calendar calendar = Calendar.getInstance();
+            TimeZone tz = TimeZone.getDefault();
+            calendar.setTimeInMillis(timestamp * 1000);
+            calendar.add(Calendar.MILLISECOND, tz.getOffset(calendar.getTimeInMillis()));
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date currenTimeZone = (Date) calendar.getTime();
+            return sdf.format(currenTimeZone);
+        }catch (Exception e) {
+        }
+        return "";
     }
 
 
@@ -285,13 +522,22 @@ public class MainActivity extends AppCompatActivity
         }
     }
     private void removeMsgFromDB(Integer position){
-//        db.msgDao().findByMessageId(adapter.getMsgId(position)).observe(this, new Observer<Msg>() {
-//            @Override
-//            public void onChanged(Msg msg) {
-//                delete(msg);
-//            }
-//        });
+
+
+        //delete from local db
         deleteMe(adapter.getMsgId(position));
+
+
+        Integer DocToDelete = adapter.getMsgId(position);
+
+        firebaseFirestore.collection("chats").document(Integer.toString(DocToDelete))
+        .delete()
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Log.d("REMOVED FROM FIREBASE","*****");
+                    }
+                });
 
     }
     @Override
@@ -315,31 +561,12 @@ public class MainActivity extends AppCompatActivity
             public void onClick(DialogInterface dialog, int which) {
                 removeMsgFromDB(position);
 
-//                strings1.remove(position);
-//                final Msg[] msg1 = new Msg[1];
-//                db.msgDao().findByMessageId(adapter.getMsgId(position)).observe(this,new Observer<Msg>() {
-//                    @Override
-//                    public void onChanged(Msg msg) {
-//                        msg1[0] = msg;
-//                    }
-//                });
-//
-////                Msg msg = db.msgDao().findByMessageId(adapter.getMsgId(position));
-////                db.msgDao().delete(msg);
-//                delete(msg1[0]);
+
                 adapter.removeItem(position);
-                try {
-                    findMaxMid();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
 
                 dialog.cancel();
             }
         });
-//        alertDialog.show();
         alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -348,9 +575,6 @@ public class MainActivity extends AppCompatActivity
         });
         AlertDialog alert = alertDialog.create();
         alert.show();
-
-
-
 
 
     }
@@ -375,6 +599,9 @@ public class MainActivity extends AppCompatActivity
     }
 
 }
+
+/**building the Room local DB for selfChat*/
+
 @Entity
 class Msg{
     @PrimaryKey
@@ -383,14 +610,21 @@ class Msg{
     @ColumnInfo(name = "chatBox")
     public String message;
 
+    @ColumnInfo(name = "date")
+    public String timestamp;
+
     public void setMid(int id){
         this.Mid = id;
+    }
+    public void setTimeStamp(String currentTime){
+        this.timestamp = currentTime;
     }
     public void setMessage(String msg){
         this.message = msg;
     }
     public int getMid(){ return this.Mid; }
     public String getMessage(){ return this.message;}
+    public String getTimestamp(){ return this.timestamp;}
 }
 
 @Dao
@@ -404,7 +638,7 @@ interface MsgDao{
 
 
     @Query("SELECT * FROM Msg WHERE Mid LIKE :msgId ")
-    LiveData<Msg> findByMessageId(Integer msgId);
+    Msg findByMessageId(Integer msgId);
 
     @Query("SELECT MAX(Mid) FROM Msg")
     Integer findMaxMid();
@@ -443,3 +677,4 @@ abstract class AppDatabase extends RoomDatabase{
 
 
 }
+
