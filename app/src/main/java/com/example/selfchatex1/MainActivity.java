@@ -3,6 +3,7 @@ package com.example.selfchatex1;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Parcelable;
@@ -13,8 +14,14 @@ import androidx.appcompat.app.AppCompatActivity;
 //import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.support.v4.app.INotificationSideChannel;
@@ -22,6 +29,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -62,10 +70,15 @@ import androidx.room.PrimaryKey;
 import androidx.room.Query;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+
+import static com.example.selfchatex1.LoginViewModel.AuthenticationState.AUTHENTICATED;
 //import TaskCompleted.java;
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends FragmentActivity
         implements chatAdapter.chatBoxClickCallback, TaskCompleted{
+
+    private LoginViewModel viewModel;
+    private MsgDetailsViewModel msgViewModel;
 
     private chatAdapter.chatAdapter1 adapter = new chatAdapter.chatAdapter1(new ArrayList<String>(),new ArrayList<Integer>());
     private RecyclerView recyclerView;
@@ -294,13 +307,76 @@ public class MainActivity extends AppCompatActivity
         }
 
     }
+    public void showWelcomeMessage(){
+        final TextView welcomeTextView = findViewById(R.id.textView5);
+        DocumentReference docRef = firebaseFirestore.collection("chats").document("Defaults");
+        final String userName ;
+        docRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                if(task.isSuccessful()){
+                    DocumentSnapshot doc = task.getResult();
+
+                    welcomeTextView.setText("hello " + String.valueOf(doc.getData()) + "!");
+                }
+            }
+        });
+
+
+
+    }
+
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+
+        viewModel = ViewModelProviders.of(this).get(LoginViewModel.class);
+        msgViewModel = ViewModelProviders.of(this).get(MsgDetailsViewModel.class);
+
+
+        //welcome to user if authenticated -->
+        TextView user_name = findViewById(R.id.textView5);
+        Bundle extras = getIntent().getExtras();
+        if(viewModel.auth.equals("AUTH") || viewModel.auth.equals("INVAL")){
+            if(extras != null) {
+                String str = extras.getString("value");
+                if (str != null) {
+                    user_name.setText("hello " + str + "!");
+                }
+            }
+        }
+
+//        viewModel.authenticationState.observe(this,
+//                new Observer<LoginViewModel.AuthenticationState>() {
+//                    @Override
+//                    public void onChanged(LoginViewModel.AuthenticationState authenticationState) {
+//                        switch (authenticationState) {
+//                            case AUTHENTICATED:
+//                                showWelcomeMessage();
+//                                break;
+//                            case UNAUTHENTICATED:
+//
+//                                break;
+//                            case INVALID_AUTHENTICATION://on pressed "Skip"
+//                                break;
+//                        }
+//                    }
+//                });
+//
+
+
+
+
+
         db = AppDatabase.getDatabase(this);    /*todo*/
+
+        msgViewModel.db = this.db;
 
         //loading from firestore to local room
         firebaseFirestore.collection("chats").get()
@@ -351,11 +427,12 @@ public class MainActivity extends AppCompatActivity
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
         adapter.callback = this;
+        msgViewModel.adapter = this.adapter;
 //        List<Msg> messegesList = db.msgDao().getAll();
         db.msgDao().getNumofMsgs().observe(this, new Observer<Integer>() {
             @Override
             public void onChanged(@Nullable final Integer integer) {
-                android.util.Log.d(MainActivity.class.getName(),"current size of chat messages list: " +integer );
+                Log.d(MainActivity.class.getName(),"current size of chat messages list: " +integer );
 
             }
         });
@@ -507,21 +584,7 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        recycleState =layoutManager.onSaveInstanceState();
-
-    }
-    @Override
-    protected void onRestoreInstanceState(Bundle state){
-        super.onRestoreInstanceState(state);
-        if(state != null){
-            recycleState = state.getParcelable("recyclestate");
-            stringArrayList = state.getStringArrayList("recyclerContent");
-        }
-    }
-    private void removeMsgFromDB(Integer position){
+    private void removeMsgFromDB(Integer position){     // moved to MsgDetailsViewModel class -->
 
 
         //delete from local db
@@ -531,7 +594,7 @@ public class MainActivity extends AppCompatActivity
         Integer DocToDelete = adapter.getMsgId(position);
 
         firebaseFirestore.collection("chats").document(Integer.toString(DocToDelete))
-        .delete()
+                .delete()
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
@@ -550,31 +613,54 @@ public class MainActivity extends AppCompatActivity
             layoutManager.onRestoreInstanceState(recycleState);
         }
     }
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        recycleState =layoutManager.onSaveInstanceState();
+
+    }
+    @Override
+    protected void onRestoreInstanceState(Bundle state){
+        super.onRestoreInstanceState(state);
+        if(state != null){
+            recycleState = state.getParcelable("recyclestate");
+            stringArrayList = state.getStringArrayList("recyclerContent");
+        }
+    }
 
     @Override
     public void onChatBoxClick(final List<String> strings1, final int position) {
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder((MainActivity)this);
-        alertDialog.setTitle("popup message");
-        alertDialog.setMessage("are you sure?");
-        alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                removeMsgFromDB(position);
 
+        Intent intent = new Intent(this, Msg_Details.class);
+        intent.putExtra("position", position);
+        startActivity(intent);
+//        Bundle bundle = new Bundle();
+//        Fragment fr = new MsgDetails();
+//        bundle.putInt("position" , position);
+//        fr.setArguments(bundle);
 
-                adapter.removeItem(position);
-
-                dialog.cancel();
-            }
-        });
-        alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
-        AlertDialog alert = alertDialog.create();
-        alert.show();
+//        AlertDialog.Builder alertDialog = new AlertDialog.Builder((MainActivity)this);
+//        alertDialog.setTitle("popup message");
+//        alertDialog.setMessage("are you sure?");
+//        alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+//            @Override
+//            public void onClick(DialogInterface dialog, int which) {
+//                removeMsgFromDB(position);
+//
+//
+//                adapter.removeItem(position);
+//
+//                dialog.cancel();
+//            }
+//        });
+//        alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+//            @Override
+//            public void onClick(DialogInterface dialog, int which) {
+//                dialog.cancel();
+//            }
+//        });
+//        AlertDialog alert = alertDialog.create();
+//        alert.show();
 
 
     }
