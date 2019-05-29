@@ -29,7 +29,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+
 
 
         mViewModel = ViewModelProviders.of(this).get(LoginViewModel.class);
@@ -47,7 +47,8 @@ public class LoginActivity extends AppCompatActivity {
                     if (doc.getData() != null) {
                         mViewModel.auth = "AUTH";
                         Intent inte = new Intent(LoginActivity.this, MainActivity.class);
-                        inte.putExtra("value", doc.getData().toString());
+                        inte.putExtra("value", doc.getString("username"));
+                        finish();
                         startActivity(inte);
                     }
                 }
@@ -55,12 +56,7 @@ public class LoginActivity extends AppCompatActivity {
 
             }
         });
-
-
-
-
-
-
+        setContentView(R.layout.activity_login);
 
 
 

@@ -10,14 +10,15 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class chatAdapter {
+public class chatAdapter implements Serializable {
     interface chatBoxClickCallback{
         void onChatBoxClick(List<String> strings, int position);
     }
-    static class chatHolder extends RecyclerView.ViewHolder {
+    static class chatHolder extends RecyclerView.ViewHolder implements Serializable {
         public final ImageView imageView;
         public final TextView textView;
         public chatHolder(@NonNull View itemView){
@@ -33,7 +34,7 @@ public class chatAdapter {
 
 
     }
-    public static class chatAdapter1 extends RecyclerView.Adapter<chatHolder> {
+    public static class chatAdapter1 extends RecyclerView.Adapter<chatHolder> implements Serializable {
 //    public static class chatAdapter1 extends ListAdapter<chatHolder> {
         protected List<String> strings;
         protected List<Integer> msgIds;
@@ -45,19 +46,23 @@ public class chatAdapter {
 
         public chatBoxClickCallback callback;
         public void addItem(String item, Integer msgId){
-            if(!this.msgIds.contains(msgId)) {
+//            if(!this.msgIds.contains(msgId)) {
                 this.strings.add(item);
                 this.msgIds.add(msgId);
                 notifyDataSetChanged();
-            }
+//            }
         }
          public boolean isEmpty(){
             return this.strings.isEmpty();
          }
         public void setWords(List<Msg> strings){
+            this.strings = new ArrayList<String>();
+
+            this.msgIds = new ArrayList<Integer>();
             for(Msg msg: strings){
 //                int id = msg.getMid();
-                if(!this.msgIds.contains(msg.getMid()) )
+
+//                if(!this.msgIds.contains(msg.getMid()) )
                     addItem(msg.getMessage(),msg.getMid());
             }
 //            this.strings = strings;

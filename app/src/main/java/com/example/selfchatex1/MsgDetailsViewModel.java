@@ -30,12 +30,13 @@ public class MsgDetailsViewModel extends ViewModel {
 
 
 
+
     }
 
     public void  showMsgDetails(final TextView tv){
         final StringBuilder details = new StringBuilder();
 
-        firebaseFirestore.collection("chats").document(String.valueOf(adapter.getMsgId(MsdIdToDlt))).get()
+        firebaseFirestore.collection("chats").document(String.valueOf(MsdIdToDlt)).get()
                 .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                     @Override
                     public void onComplete(@NonNull Task<DocumentSnapshot> task) {
@@ -43,24 +44,28 @@ public class MsgDetailsViewModel extends ViewModel {
                             DocumentSnapshot doc = task.getResult();
                             for (Map.Entry<String, Object> entry : doc.getData().entrySet()) {
                                 if(entry.getKey().equals("msg")){
-                                    details.append((String)entry.getValue()).append("\n");
+                                    details.append("content: ").append((String)entry.getValue()).append("\n");
 //                                    tv.setText((String)entry.getValue());
                                 }
-                                if(entry.getKey().equals( "id")){
-                                    details.append((String) entry.getValue()).append("\n");
-//                                    tv.setText((Long) entry.getValue()).intValue();
-
-                                }
+//                                if(entry.getKey().equals( "id")){
+//                                    details.append("id: ").append((String) String.valueOf(entry.getValue())).append("\n");
+////                                    tv.setText((Long) entry.getValue()).intValue();
+//
+//                                }
                                 if(entry.getKey().equals( "timeStamp")){
-                                    details.append((String) entry.getValue());
+                                    details.append("date: ").append((String) entry.getValue());
+                                }
+                                if(entry.getKey().equals( "model phone")){
+                                    details.append("sent from: ").append((String) entry.getValue());
                                 }
 
                             }
 
                         }
+                        tv.setText("message details: \n" +  details.toString());
                     }
                 });
-        tv.setText(details.toString());
+
     }
 
     private static class deleteMeAsyncTask extends AsyncTask<Integer, Void,Void> {
@@ -90,12 +95,12 @@ public class MsgDetailsViewModel extends ViewModel {
 
 
         //delete from local db
-        deleteMe(adapter.getMsgId(position));
+        deleteMe(position);
 
 
-        Integer DocToDelete = adapter.getMsgId(position);
 
-        firebaseFirestore.collection("chats").document(Integer.toString(DocToDelete))
+
+        firebaseFirestore.collection("chats").document(Integer.toString(position))
                 .delete()
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
@@ -108,6 +113,6 @@ public class MsgDetailsViewModel extends ViewModel {
 
     public void delteMsg(){
         removeMsgFromDB(MsdIdToDlt);
-        adapter.removeItem(MsdIdToDlt);
+//        adapter.removeItem(MsdIdToDlt);
     }
 }

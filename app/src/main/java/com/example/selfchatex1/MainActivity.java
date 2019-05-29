@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
@@ -49,6 +50,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -75,7 +77,7 @@ import static com.example.selfchatex1.LoginViewModel.AuthenticationState.AUTHENT
 //import TaskCompleted.java;
 
 public class MainActivity extends FragmentActivity
-        implements chatAdapter.chatBoxClickCallback, TaskCompleted{
+        implements chatAdapter.chatBoxClickCallback, TaskCompleted,Serializable {
 
     private LoginViewModel viewModel;
     private MsgDetailsViewModel msgViewModel;
@@ -98,6 +100,11 @@ public class MainActivity extends FragmentActivity
         user.put("msg",msg.getMessage());
         user.put("id",msg.getMid());
         user.put("timeStamp",msg.getTimestamp());
+        String reqString = Build.MANUFACTURER
+                + " " + Build.MODEL + " " + Build.VERSION.RELEASE
+                + " " + Build.VERSION_CODES.class.getFields()[android.os.Build.VERSION.SDK_INT].getName();
+
+        user.put("model phone", reqString);
         firebaseFirestore.collection("chats").document(Integer.toString(msg.getMid()))
                 .set(user).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
@@ -317,7 +324,7 @@ public class MainActivity extends FragmentActivity
                 if(task.isSuccessful()){
                     DocumentSnapshot doc = task.getResult();
 
-                    welcomeTextView.setText("hello " + String.valueOf(doc.getData()) + "!");
+                    welcomeTextView.setText("hello " + String.valueOf(doc.getString("username")) + "!");
                 }
             }
         });
@@ -337,20 +344,22 @@ public class MainActivity extends FragmentActivity
 
 
         viewModel = ViewModelProviders.of(this).get(LoginViewModel.class);
+
         msgViewModel = ViewModelProviders.of(this).get(MsgDetailsViewModel.class);
 
 
         //welcome to user if authenticated -->
         TextView user_name = findViewById(R.id.textView5);
         Bundle extras = getIntent().getExtras();
-        if(viewModel.auth.equals("AUTH") || viewModel.auth.equals("INVAL")){
+//        if(viewModel.auth.equals("AUTH") || viewModel.auth.equals("INVAL")){
             if(extras != null) {
                 String str = extras.getString("value");
                 if (str != null) {
                     user_name.setText("hello " + str + "!");
+//                    showWelcomeMessage();
                 }
             }
-        }
+//        }
 
 //        viewModel.authenticationState.observe(this,
 //                new Observer<LoginViewModel.AuthenticationState>() {
@@ -375,6 +384,7 @@ public class MainActivity extends FragmentActivity
 
 
         db = AppDatabase.getDatabase(this);    /*todo*/
+        deleteAll();
 
         msgViewModel.db = this.db;
 
@@ -632,7 +642,8 @@ public class MainActivity extends FragmentActivity
     public void onChatBoxClick(final List<String> strings1, final int position) {
 
         Intent intent = new Intent(this, Msg_Details.class);
-        intent.putExtra("position", position);
+        intent.putExtra("position", adapter.getMsgId(position));
+//        intent.putExtra("adapter", adapter);
         startActivity(intent);
 //        Bundle bundle = new Bundle();
 //        Fragment fr = new MsgDetails();
@@ -687,80 +698,3 @@ public class MainActivity extends FragmentActivity
 }
 
 /**building the Room local DB for selfChat*/
-
-@Entity
-class Msg{
-    @PrimaryKey
-    public int Mid;
-
-    @ColumnInfo(name = "chatBox")
-    public String message;
-
-    @ColumnInfo(name = "date")
-    public String timestamp;
-
-    public void setMid(int id){
-        this.Mid = id;
-    }
-    public void setTimeStamp(String currentTime){
-        this.timestamp = currentTime;
-    }
-    public void setMessage(String msg){
-        this.message = msg;
-    }
-    public int getMid(){ return this.Mid; }
-    public String getMessage(){ return this.message;}
-    public String getTimestamp(){ return this.timestamp;}
-}
-
-@Dao
-interface MsgDao{
-
-    @Query("SELECT * FROM Msg")
-    LiveData<List<Msg>> getAll();
-
-    @Query("SELECT COUNT(*) FROM Msg")
-    LiveData<Integer> getNumofMsgs();
-
-
-    @Query("SELECT * FROM Msg WHERE Mid LIKE :msgId ")
-    Msg findByMessageId(Integer msgId);
-
-    @Query("SELECT MAX(Mid) FROM Msg")
-    Integer findMaxMid();
-
-    @Query("DELETE FROM Msg ")
-    void deleteAll();
-
-
-
-    @Query("DELETE FROM Msg WHERE Mid LIKE :msgID")
-
-    void deleteMe(Integer msgID);
-
-    @Insert
-    void insertAll(Msg ... msgs);
-
-    @Delete
-    void delete(Msg msg);
-}
-
-@Database(entities = {Msg.class}, version = 1)
-abstract class AppDatabase extends RoomDatabase{
-    public abstract MsgDao msgDao();
-    private static volatile AppDatabase INSTANCE;
-    static AppDatabase getDatabase(final Context context){
-        if(INSTANCE == null){
-            synchronized (AppDatabase.class){
-                if(INSTANCE == null){
-                    INSTANCE = Room.databaseBuilder(context.getApplicationContext(),AppDatabase.class,"chat- database").build();
-
-                }
-            }
-        }
-        return INSTANCE;
-    }
-
-
-}
-

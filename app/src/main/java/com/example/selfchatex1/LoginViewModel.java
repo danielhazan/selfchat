@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentReference;
@@ -51,11 +52,17 @@ public class LoginViewModel extends ViewModel {
             Map<String, Object> user = new HashMap<>();
             user.put("username", this.username);
             firebaseFirestore.collection("chats").document("Defaults")
-                    .set(user, SetOptions.mergeFields())
+                    .set(user)
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
                             Log.d("ADDED****", " USERNAME SUCCESSFULLY ADDED " );
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.w("NOT ADDED", "Error writing document", e);
                         }
                     });
         } else {

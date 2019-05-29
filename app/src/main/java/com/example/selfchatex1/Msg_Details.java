@@ -15,15 +15,20 @@ import android.widget.TextView;
 public class Msg_Details extends AppCompatActivity {
     int msgToDlt;
     private MsgDetailsViewModel mViewModel;
+    AppDatabase db;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_msg__details);
+        db = (AppDatabase) AppDatabase.getDatabase(this);
+
         msgToDlt = getIntent().getExtras().getInt("position");
+//        mViewModel.adapter = (chatAdapter.chatAdapter1) getIntent().getSerializableExtra("adapter");
 
         mViewModel = ViewModelProviders.of(this).get(MsgDetailsViewModel.class);
+        mViewModel.db = db;
         mViewModel.MsdIdToDlt = msgToDlt;
         TextView tv = findViewById(R.id.textView6);
         mViewModel.showMsgDetails(tv);
