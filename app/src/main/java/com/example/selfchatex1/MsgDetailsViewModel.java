@@ -45,13 +45,8 @@ public class MsgDetailsViewModel extends ViewModel {
                             for (Map.Entry<String, Object> entry : doc.getData().entrySet()) {
                                 if(entry.getKey().equals("msg")){
                                     details.append("content: ").append((String)entry.getValue()).append("\n");
-//                                    tv.setText((String)entry.getValue());
                                 }
-//                                if(entry.getKey().equals( "id")){
-//                                    details.append("id: ").append((String) String.valueOf(entry.getValue())).append("\n");
-////                                    tv.setText((Long) entry.getValue()).intValue();
-//
-//                                }
+
                                 if(entry.getKey().equals( "timeStamp")){
                                     details.append("date: ").append((String) entry.getValue());
                                 }
